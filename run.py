@@ -37,17 +37,17 @@ def scrap(feed_urls):
 
         articles = feed.findAll('item')       
         for article in articles:
-            title = BeautifulSoup(article.find('title').get_text(), "html").get_text()
+            title = BeautifulSoup(article.find('title').get_text(), "html.parser").get_text()
             summary = ""
             if (article.find('description')):
-                summary = BeautifulSoup(article.find('description').get_text(), "html").get_text()
+                summary = BeautifulSoup(article.find('description').get_text(), "html.parser").get_text()
             news_list.loc[len(news_list)] = [title, summary]
 
     return news_list
 
 def process_text(docs, lang='fr'):
     if (lang=='fr'):
-        nlp = spacy.load('fr_core_news_sm')
+        nlp = spacy.load('fr_core_news_lg')
     elif (lang=='en'):
         nlp = spacy.load('en_core_web_sm')
 
@@ -56,25 +56,18 @@ def process_text(docs, lang='fr'):
         chr(i) for i in range(sys.maxunicode)
         if category(chr(i)).startswith("P")
     ]
-    def tokenize(text):
-        text = "".join(list(filter(lambda x: x not in [*string.punctuation, *punctuation_chars], text)))
-        tokens = nltk.word_tokenize(text)
-        words = list(filter(lambda x: x not in [stopwords.words('english') + stopwords.words('french')], tokens))
-        return list(map(lambda x: x.lower(), words))
-
-    def preprocess_text(documents):
-        docs = list(map(lambda doc: tokenize(doc), documents))
-        return docs
     
-    # Clean and tokenize docs
-    tokenized_docs = preprocess_text(docs)
-    
-    # Lemmanize docs
-    def lemmanize(doc):
-        doc = list(filter(lambda token: token.lemma_ not in nlp.Defaults.stop_words, doc))
-        return list(map(lambda token: token.lemma_, doc))
+    lemma_docs = []
+    for doc in docs:
+        # Tokenize docs
+        tokenized_doc = nlp(doc)
 
-    lemma_docs = list(map(lambda doc: lemmanize(nlp(" ".join(doc))), tokenized_docs))
+        # Lemmanize docs
+        lemma_doc = list(filter(lambda token: token.is_stop == False and token.pos_ in ['NOUN', 'PROPN'] and token.lemma_ not in [*string.punctuation, *punctuation_chars], tokenized_doc))
+        lemma_doc = list(map(lambda tok: tok.lemma_, lemma_doc))
+        lemma_docs.append(lemma_doc)
+
+
     def get_vocabulary_frequency(documents):
         vocabulary = dict()
         for doc in documents:
@@ -103,11 +96,15 @@ def graphnet(docs, voc, min_freq=5, output_url='graph.html'):
     finder = nltk.BigramCollocationFinder.from_documents(docs)
     bigram_measures = nltk.collocations.BigramAssocMeasures()
     bigrams = list(finder.score_ngrams(bigram_measures.raw_freq))
-    bigrams = list(map(lambda x: x[0], bigrams))
+    min_freq = min(list(map(lambda x: x[1], bigrams)))
+    bigrams = list(map(lambda x: (x[0], x[1]/min_freq), bigrams))
 
     # Filter the bigrams with filtered_voc elements and replace by id
-    bigrams = list(filter(lambda x: x[0] in filtered_voc.keys() and x[1] in filtered_voc.keys(), bigrams))
-    bigrams = list(map(lambda x: (dict_voc_id[x[0]], dict_voc_id[x[1]]), bigrams))
+    filtered_bigrams = []
+    for bigram in bigrams:
+        if (bigram[0][0] in filtered_voc.keys() and bigram[0][1] in filtered_voc.keys()):
+            new_bigram = ( dict_voc_id[bigram[0][0]] , dict_voc_id[bigram[0][1]] )
+            filtered_bigrams.append((new_bigram, bigram[1]))
 
     # Set nodes sizes
     sizes = list(filtered_voc.values())
@@ -122,12 +119,13 @@ def graphnet(docs, voc, min_freq=5, output_url='graph.html'):
         })
     
     edges = []
-    for i, edge in enumerate(bigrams):
-        (source, target) = edge
+    for i, edge in enumerate(filtered_bigrams):
+        (source, target) = edge[0]
         edges.append({
             'id': i,
             'source': source,
-            'target': target
+            'target': target,
+            'size': edge[1]
         })
 
     
@@ -138,6 +136,48 @@ def graphnet(docs, voc, min_freq=5, output_url='graph.html'):
     
     with open('edges.json', 'w', encoding='UTF8', newline='') as f:
         writer = json.dump(edges, f, ensure_ascii=False)
+
+
+def find_trends(docs, criterion='leverage'):
+    te = TransactionEncoder()
+    te_ary = te.fit(docs).transform(docs, sparse=True)
+    df = pd.DataFrame.sparse.from_spmatrix(te_ary, columns=te.columns_)
+
+    frequent_itemsets = apriori(df, min_support=0.005, use_colnames=True, verbose=1)
+    frequent_itemsets['length'] = frequent_itemsets['itemsets'].apply(lambda x: len(x))
+
+    rules = association_rules(frequent_itemsets, metric ="lift", min_threshold = 1)
+    rules = rules.sort_values([criterion], ascending =[False])
+
+    rules = rules[rules[criterion] > 0.005]
+
+    trends = []
+    for i in rules.index:
+        rule = rules.loc[i]
+        x = list(rule['antecedents'])
+        y = list(rule['consequents'])
+        terms = x + y
+        ok = True
+        new_trend = terms
+        delete_trends_ids = []
+        for term in terms:
+            for i, trend in enumerate(trends):
+                if (term in trend):
+                    ok = False
+                    old_trend = new_trend
+                    new_trend = list(set(new_trend + list(trend)))
+                    #print(f'{old_trend} -> {new_trend}')
+                    delete_trends_ids.append(i)
+        if (ok == True):
+            trends.append((tuple(y + x)))
+        else:
+            trends = [x for i, x in enumerate(trends) if i not in delete_trends_ids]
+            trends.append(tuple(new_trend))
+
+    with open('trends.json', 'w', encoding='UTF8', newline='') as f:
+        writer = json.dump(trends, f, ensure_ascii=False)
+        
+    return trends
 
 
 news_list = scrap(feed_urls)
