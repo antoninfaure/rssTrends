@@ -1,0 +1,23 @@
+name: copy
+on: [workflow_dispatch]
+  
+
+jobs:
+  copy-file:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+
+    - name: Pushes test folder
+      uses: datalbry/copy_folder_to_another_repo_action@1.0.0
+      env:
+          API_TOKEN_GITHUB: ${{ secrets.API_TOKEN_GITHUB }}
+      with:
+        source_folder: 'data'
+        destination_repo: 'antoninfaure/personal-website'
+        destination_folder: 'static/assets/rss-trends/'
+        user_email: 'action@github.com'
+        user_name: 'GitHub Actions'
+        commit_msg: '[RSS] Update data'
