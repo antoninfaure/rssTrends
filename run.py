@@ -52,7 +52,7 @@ def scrap(feed_urls):
 
 def process_text(docs, lang='fr'):
     if (lang=='fr'):
-        nlp = spacy.load('fr_core_news_sm')
+        nlp = spacy.load('fr_core_news_lg')
     elif (lang=='en'):
         nlp = spacy.load('en_core_web_sm')
 
@@ -148,7 +148,7 @@ def graphnet(docs, voc, min_freq=5, output_url='graph.html'):
     output_file(edges, 'edges.json')
 
 
-def find_trends(docs, criterion='leverage'):
+def find_trends(docs, criterion='leverage', level=0.01):
     te = TransactionEncoder()
     te_ary = te.fit(docs).transform(docs, sparse=True)
     df = pd.DataFrame.sparse.from_spmatrix(te_ary, columns=te.columns_)
@@ -159,7 +159,7 @@ def find_trends(docs, criterion='leverage'):
     rules = association_rules(frequent_itemsets, metric ="lift", min_threshold = 1)
     rules = rules.sort_values([criterion], ascending =[False])
 
-    rules = rules[rules[criterion] > 0.005]
+    rules = rules[rules[criterion] > level]
 
     trends = []
     for i in rules.index:
@@ -176,19 +176,20 @@ def find_trends(docs, criterion='leverage'):
                     ok = False
                     old_trend = new_trend
                     new_trend = list(set(new_trend + list(trend)))
+                    #print(f'{old_trend} -> {new_trend}')
                     delete_trends_ids.append(i)
         if (ok == True):
             trends.append((tuple(y + x)))
         else:
             trends = [x for i, x in enumerate(trends) if i not in delete_trends_ids]
-            trends.append(tuple(new_trend))
-
+            trends.insert(min(delete_trends_ids), tuple(new_trend))
+    
     output_file(trends, 'trends.json')
-        
+
     return trends
 
 
 news_list = scrap(feed_urls)
 docs, voc = process_text(news_list['title'], lang='fr')
 graphnet(docs, voc, min_freq=5)
-trends = find_trends(docs)
+trends = find_trends(docs, 'leverage', 0.005)
