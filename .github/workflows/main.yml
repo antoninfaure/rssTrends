@@ -6,18 +6,34 @@ jobs:
   copy-file:
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout
-      uses: actions/checkout@v3
-    - name: Clear headers
-      run: git config --unset-all http.https://github.com/.extraheader
-    - name: Pushes test folder
-      uses: datalbry/copy_folder_to_another_repo_action@1.0.0
-      env:
-          API_TOKEN_GITHUB: ${{ secrets.API_TOKEN_GITHUB }}
-      with:
-        source_folder: 'data'
-        destination_repo: 'antoninfaure/personal-website'
-        destination_folder: 'static/assets/rss-trends/'
-        user_email: 'action@github.com'
-        user_name: 'GitHub Actions'
-        commit_msg: '[RSS] Update data'
+        - name: Checkout Project A
+          uses: actions/checkout@v3
+          with:
+            path: ./projectA
+
+        - name: Checkout Project B
+          uses: actions/checkout@test
+          with: 
+            repository: antoninfaure/personal-website
+            token: ${{ secrets.API_TOKEN_GITHUB }}
+            path: ./projectB
+
+        - name: Copy/Create file
+          run: |
+            FILE=./projectA/file
+            if [ -f "$FILE" ]; then
+              echo "Copying $FILE"
+              cp -R ./projectA/file ./projectB
+            else 
+              echo "Creating $FILE"
+              touch ./projectB/file
+            fi
+
+        - name: Push Project B
+          run: |
+            cd ./projectB
+            git add .
+            git config user.name github-actions
+            git config user.email github-actions@github.com
+            git commit -am "File Replicated from Project A"
+            git push
