@@ -17,3 +17,4 @@ jobs:
         destination-repository-name: 'personal-website'
         user-email: action@github.com
         target-branch: test
+        target-directory: 'static/assets/rss-trends/data'
