@@ -116,7 +116,8 @@ def graphnet(docs, voc, min_freq=5, output_url='graph.html'):
     filtered_bigrams = []
     for bigram in bigrams:
         if (bigram[0][0] in filtered_voc.keys() and bigram[0][1] in filtered_voc.keys()):
-            new_bigram = ( dict_voc_id[bigram[0][0]] , dict_voc_id[bigram[0][1]] )
+            #new_bigram = ( dict_voc_id[bigram[0][0]] , dict_voc_id[bigram[0][1]] )
+            new_bigram = bigram[0]
             filtered_bigrams.append((new_bigram, bigram[1]))
 
     # Set nodes sizes
@@ -126,7 +127,7 @@ def graphnet(docs, voc, min_freq=5, output_url='graph.html'):
     nodes = []
     for i, term in enumerate(filtered_voc.keys()):
         nodes.append({
-            'id': i,
+            'id': term,
             'label': term,
             'size': sizes[i]
         })
@@ -191,5 +192,5 @@ def find_trends(docs, criterion='leverage', level=0.01):
 
 news_list = scrap(feed_urls)
 docs, voc = process_text(news_list['title'], lang='fr')
-graphnet(docs, voc, min_freq=5)
+graphnet(docs, voc, min_freq=2)
 trends = find_trends(docs, 'leverage', 0.005)
