@@ -11,6 +11,7 @@ import json
 from mlxtend.frequent_patterns import apriori, association_rules
 from mlxtend.preprocessing import TransactionEncoder
 from datetime import date
+import os
 
 feed_urls = [
     "http://www.lemonde.fr/rss/une.xml",
