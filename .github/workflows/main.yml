@@ -8,7 +8,8 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v3
-
+    - name: Clear headers
+      run: git config --unset-all http.https://github.com/.extraheader
     - name: Pushes test folder
       uses: datalbry/copy_folder_to_another_repo_action@1.0.0
       env:
