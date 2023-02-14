@@ -47,7 +47,7 @@ def scrap(feed_urls):
 
 def process_text(docs, lang='fr'):
     if (lang=='fr'):
-        nlp = spacy.load('fr_core_news_lg')
+        nlp = spacy.load('fr_core_news_sm')
     elif (lang=='en'):
         nlp = spacy.load('en_core_web_sm')
 
