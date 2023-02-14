@@ -47,9 +47,10 @@ jobs:
 
     - name: Pushes test folder
       uses: datalbry/copy_folder_to_another_repo_action@1.0.0
+      env:
+          API_TOKEN_GITHUB: ${{ secrets.API_GITHUB_TOKEN }}
       with:
         source_folder: 'data'
-        github_token: ${{ secrets.GITHUB_TOKEN }}
         destination_repo: 'antoninfaure/personal-website'
         destination_folder: 'static/assets/rss-trends/'
         user_email: 'action@github.com'
