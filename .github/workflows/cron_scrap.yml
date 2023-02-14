@@ -1,7 +1,8 @@
 name: cron_scrap
+
 on:
   schedule:
-    - cron: "*/30 * * * *"
+    - cron: "0 21 * * *"
   
 
 jobs:
@@ -10,7 +11,7 @@ jobs:
 
     steps:
       - name: checkout repo content
-        uses: actions/checkout@v2 # checkout the repository content to github runner.
+        uses: actions/checkout@v3 # checkout the repository content to github runner.
         
       - name: setup python
         uses: actions/setup-python@v4
@@ -22,6 +23,9 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           
+      - name: install french model
+        run: python -m spacy download fr_core_news_sm
+        
       - name: execute py script # run main.py
         run: python run.py
           
