@@ -189,8 +189,15 @@ def find_trends(docs, criterion='leverage', level=0.01):
 
     return trends
 
-
+def list_dates():
+    dates = [x for x in next(os.walk('./data'))[1]]
+    dates.sort(key=lambda date: datetime.strptime(date, "%d-%m-%Y"), reverse=True)
+    dates = [{"name": x} for x in dates]
+    with open(f'./data/list.json', 'w', encoding='UTF8', newline='') as f:
+        writer = json.dump(dates, f, ensure_ascii=False)
+        
 news_list = scrap(feed_urls)
 docs, voc = process_text(news_list['title'], lang='fr')
 graphnet(docs, voc, min_freq=2)
 trends = find_trends(docs, 'leverage', 0.005)
+list_dates()
