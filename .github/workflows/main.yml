@@ -6,34 +6,14 @@ jobs:
   copy-file:
     runs-on: ubuntu-latest
     steps:
-        - name: Checkout Project A
-          uses: actions/checkout@v3
-          with:
-            path: ./projectA
-
-        - name: Checkout Project B
-          uses: actions/checkout@test
-          with: 
-            repository: antoninfaure/personal-website
-            token: ${{ secrets.API_TOKEN_GITHUB }}
-            path: ./projectB
-
-        - name: Copy/Create file
-          run: |
-            FILE=./projectA/file
-            if [ -f "$FILE" ]; then
-              echo "Copying $FILE"
-              cp -R ./projectA/file ./projectB
-            else 
-              echo "Creating $FILE"
-              touch ./projectB/file
-            fi
-
-        - name: Push Project B
-          run: |
-            cd ./projectB
-            git add .
-            git config user.name github-actions
-            git config user.email github-actions@github.com
-            git commit -am "File Replicated from Project A"
-            git push
+    - uses: actions/checkout@v2
+    - name: Pushes to another repository
+      uses: cpina/github-action-push-to-another-repository@main
+      env:
+        API_TOKEN_GITHUB: ${{ secrets.API_TOKEN_GITHUB }}
+      with:
+        source-directory: 'data'
+        destination-github-username: 'antoninfaure'
+        destination-repository-name: 'personal-website'
+        user-email: action@github.com
+        target-branch: test
