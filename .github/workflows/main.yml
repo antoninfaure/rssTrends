@@ -4,7 +4,6 @@ on: [workflow_dispatch]
 
 jobs:
   copy-file:
-    needs: build
     runs-on: ubuntu-latest
     steps:
     - name: Checkout
