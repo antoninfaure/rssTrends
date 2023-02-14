@@ -8,6 +8,9 @@ import requests
 import sys
 from unicodedata import category
 import json
+from mlxtend.frequent_patterns import apriori, association_rules
+from mlxtend.preprocessing import TransactionEncoder
+from datetime import date
 
 feed_urls = [
     "http://www.lemonde.fr/rss/une.xml",
@@ -27,6 +30,7 @@ feed_urls = [
     "https://partner-feeds.20min.ch/rss/20minutes",
     "https://www.afp.com/fr/actus/afp_actualite/792,31,9,7,33/feed"
 ]
+
 
 def scrap(feed_urls):
     news_list = pd.DataFrame(columns=('title', 'summary'))
@@ -83,6 +87,14 @@ def process_text(docs, lang='fr'):
 
     return lemma_docs, voc
 
+def output_file(data, filename):
+    path = f'./data/{date.today().strftime("%d-%m-%Y")}'
+    if not os.path.exists(path):
+        os.makedirs(path)
+
+    with open(f'{path}/{filename}', 'w', encoding='UTF8', newline='') as f:
+        writer = json.dump(data, f, ensure_ascii=False)
+
 def graphnet(docs, voc, min_freq=5, output_url='graph.html'):
     
     # Filter voc with min_freq
@@ -130,12 +142,9 @@ def graphnet(docs, voc, min_freq=5, output_url='graph.html'):
 
     
     # Write JSON files
-    with open('nodes.json', 'w', encoding='UTF8', newline='') as f:
-        writer = json.dump(nodes, f, ensure_ascii=False)
+    output_file(nodes, 'nodes.json')
 
-    
-    with open('edges.json', 'w', encoding='UTF8', newline='') as f:
-        writer = json.dump(edges, f, ensure_ascii=False)
+    output_file(edges, 'edges.json')
 
 
 def find_trends(docs, criterion='leverage'):
@@ -166,7 +175,6 @@ def find_trends(docs, criterion='leverage'):
                     ok = False
                     old_trend = new_trend
                     new_trend = list(set(new_trend + list(trend)))
-                    #print(f'{old_trend} -> {new_trend}')
                     delete_trends_ids.append(i)
         if (ok == True):
             trends.append((tuple(y + x)))
@@ -174,8 +182,7 @@ def find_trends(docs, criterion='leverage'):
             trends = [x for i, x in enumerate(trends) if i not in delete_trends_ids]
             trends.append(tuple(new_trend))
 
-    with open('trends.json', 'w', encoding='UTF8', newline='') as f:
-        writer = json.dump(trends, f, ensure_ascii=False)
+    output_file(trends, 'trends.json')
         
     return trends
 
