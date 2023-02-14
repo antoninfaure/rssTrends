@@ -1,4 +1,4 @@
-fetch("/data/list.json")
+fetch("./data/list.json")
   .then(response => {
     return response.json();
   })
@@ -11,13 +11,13 @@ fetch("/data/list.json")
     })
 
 
-    fetch(`/data/${latest_date}/edges.json`)
+    fetch(`./data/${latest_date}/edges.json`)
       .then(response => {
         if (response.status == 404) throw error;
         return response.json();
       })
       .then(links => {
-        fetch(`/data/${latest_date}/nodes.json`)
+        fetch(`./data/${latest_date}/nodes.json`)
           .then(response => {
             if (response.status == 404) throw error;
             return response.json();
@@ -186,13 +186,13 @@ fetch("/data/list.json")
               $('#dateAlert').html(``)
               if (valueSelected.match(/^(\d{1,2})-(\d{1,2})-(\d{4})$/)) {
                 let date = valueSelected
-                fetch(`/data/${date}/nodes.json`)
+                fetch(`./data/${date}/nodes.json`)
                   .then(response => {
                     if (response.status == 404) throw error;
                     return response.json();
                   })
                   .then(new_nodes => {
-                    fetch(`/data/${date}/edges.json`)
+                    fetch(`./data/${date}/edges.json`)
                       .then(response => {
                         if (response.status == 404) throw error;
                         return response.json();
