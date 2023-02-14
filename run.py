@@ -183,3 +183,4 @@ def find_trends(docs, criterion='leverage'):
 news_list = scrap(feed_urls)
 docs, voc = process_text(news_list['title'], lang='fr')
 graphnet(docs, voc, min_freq=5)
+trends = find_trends(docs)
