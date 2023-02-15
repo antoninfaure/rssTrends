@@ -16,17 +16,13 @@ import os
 feed_urls = [
     "http://www.lemonde.fr/rss/une.xml",
     "https://www.bfmtv.com/rss/news-24-7/",
-    "https://www.liberation.fr/rss/",
     "http://www.lefigaro.fr/rss/figaro_actualites.xml",
-    "https://www.franceinter.fr/rss",
     "https://www.lexpress.fr/arc/outboundfeeds/rss/alaune.xml",
     "https://www.francetvinfo.fr/titres.rss",
     "https://www.la-croix.com/RSS",
     "http://tempsreel.nouvelobs.com/rss.xml",
     "http://www.lepoint.fr/rss.xml",
-    "https://www.france24.com/fr/rss",
     "https://feeds.leparisien.fr/leparisien/rss",
-    "https://www.ouest-france.fr/rss/une",
     "https://www.europe1.fr/rss.xml",
     "https://partner-feeds.20min.ch/rss/20minutes",
     "https://www.afp.com/fr/actus/afp_actualite/792,31,9,7,33/feed"
@@ -34,20 +30,29 @@ feed_urls = [
 
 
 def scrap(feed_urls):
-    news_list = pd.DataFrame(columns=('title', 'summary'))
+    news_list = pd.DataFrame(columns=('title', 'summary', 'img_url', 'link'))
 
     for feed_url in feed_urls:
         res = requests.get(feed_url)
         feed = BeautifulSoup(res.content, features='xml')
-
-        articles = feed.findAll('item')       
+        
+        articles = feed.findAll('item')
         for article in articles:
-            title = BeautifulSoup(article.find('title').get_text(), "html.parser").get_text()
-            summary = ""
+            news = {
+                'title': None,
+                'summary': None,
+                'link': None,
+                'img_url': None
+            }
+            news['title'] = BeautifulSoup(article.find('title').get_text(), "html").get_text()
             if (article.find('description')):
-                summary = BeautifulSoup(article.find('description').get_text(), "html.parser").get_text()
-            news_list.loc[len(news_list)] = [title, summary]
-
+                news['summary'] = BeautifulSoup(article.find('description').get_text(), "html").get_text()
+            if (article.find('content')):
+                news['img_url'] = article.find('content')['url']
+            if (article.find('link')):
+                news['link'] = article.find('link').get_text()
+            news_list = pd.concat([news_list, pd.DataFrame([news])], ignore_index=True)
+        
     return news_list
 
 def process_text(docs, lang='fr'):
@@ -149,7 +154,7 @@ def graphnet(docs, voc, min_freq=5):
     output_file(edges, 'edges.json')
 
 
-def find_trends(docs, criterion='leverage', level=0.01):
+def find_topics(docs, criterion='leverage', level=0.01):
     te = TransactionEncoder()
     te_ary = te.fit(docs).transform(docs, sparse=True)
     df = pd.DataFrame.sparse.from_spmatrix(te_ary, columns=te.columns_)
@@ -162,32 +167,28 @@ def find_trends(docs, criterion='leverage', level=0.01):
 
     rules = rules[rules[criterion] > level]
 
-    trends = []
+    topics = []
     for i in rules.index:
         rule = rules.loc[i]
         x = list(rule['antecedents'])
         y = list(rule['consequents'])
         terms = x + y
-        ok = True
-        new_trend = terms
-        delete_trends_ids = []
-        for term in terms:
-            for i, trend in enumerate(trends):
-                if (term in trend):
-                    ok = False
-                    old_trend = new_trend
-                    new_trend = list(set(new_trend + list(trend)))
-                    #print(f'{old_trend} -> {new_trend}')
-                    delete_trends_ids.append(i)
-        if (ok == True):
-            trends.append((tuple(y + x)))
+        found_similar = False
+        delete_topics_ids = []
+        for i, topic in enumerate(topics):
+            sim = similarity(topic, terms)
+            if (similarity(topic, terms) > 0.2):
+                found_similar = True
+                new_topic = list(set(list(topic) + terms))
+                delete_topics_ids.append(i)
+                break
+        if (found_similar == False):
+            topics.append((tuple(terms)))
         else:
-            trends = [x for i, x in enumerate(trends) if i not in delete_trends_ids]
-            trends.insert(min(delete_trends_ids), tuple(new_trend))
-    
-    output_file(trends, 'trends.json')
+            topics = [x for i, x in enumerate(topics) if i not in delete_topics_ids]
+            topics.insert(min(delete_topics_ids), tuple(new_topic))
 
-    return trends
+    return topics
 
 def list_dates():
     dates = [x for x in next(os.walk('./data'))[1]]
@@ -195,9 +196,51 @@ def list_dates():
     dates = [{"name": x} for x in dates]
     with open(f'./data/list.json', 'w', encoding='UTF8', newline='') as f:
         writer = json.dump(dates, f, ensure_ascii=False)
-        
+
+def similarity(x, y):
+    count = 0
+    for a in x:
+        for b in y:
+            if (b == a):
+                count += 1
+    return count/len(x)
+
+def find_similarities(trend, docs, threshold=0.3):
+    results = []
+    for i, doc in enumerate(docs):
+        sim = similarity(trend, doc)
+        if (sim > threshold):
+            results.append((i, sim, news_list.iloc[i]['link']))
+    results = sorted(results, key=lambda x: -x[1])
+    return results
+
+def find_trends(topics, docs):
+    trends = []
+    for topic in topics:
+        similar_docs = find_similarities(topic, docs)
+        img = None
+        for doc in similar_docs:
+            if (news_list.iloc[doc[0]]['img_url']):
+                img = news_list.iloc[doc[0]]['img_url']
+                break
+        trends.append({
+            "topic": topic,
+            "docs": similar_docs,
+            "img_url": img
+        })
+    
+    return trends
+
+
 news_list = scrap(feed_urls)
+output_file(list(map(lambda x: {**x[1], "news_id": x[0]}, news_list.T.to_dict().items())), 'news.json')
+
 docs, voc = process_text(news_list['title'], lang='fr')
+
 graphnet(docs, voc, min_freq=2)
-trends = find_trends(docs, 'leverage', 0.005)
+
+topics = find_topics(docs, 'leverage', 0.005)
+
+trends = find_trends(topics, docs)
+output_file(trends, 'trends.json')
 list_dates()
