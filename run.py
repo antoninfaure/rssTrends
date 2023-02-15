@@ -10,7 +10,7 @@ from unicodedata import category
 import json
 from mlxtend.frequent_patterns import apriori, association_rules
 from mlxtend.preprocessing import TransactionEncoder
-from datetime import date
+from datetime import date, datetime
 import os
 
 feed_urls = [
