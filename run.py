@@ -96,7 +96,7 @@ def output_file(data, filename):
     with open(f'{path}/{filename}', 'w', encoding='UTF8', newline='') as f:
         writer = json.dump(data, f, ensure_ascii=False)
 
-def graphnet(docs, voc, min_freq=5, output_url='graph.html'):
+def graphnet(docs, voc, min_freq=5):
     
     # Filter voc with min_freq
     filtered_voc = dict(filter(lambda elem: elem[1] > min_freq, voc.items()))
