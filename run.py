@@ -35,24 +35,25 @@ def scrap(feed_urls):
 
     for feed_url in feed_urls:
         res = requests.get(feed_url)
-        feed = BeautifulSoup(res.content, features='xml')
-        
-        articles = feed.findAll('item')
-        for article in articles:
-            news = {
-                'title': None,
-                'summary': None,
-                'link': None,
-                'img_url': None
-            }
-            news['title'] = BeautifulSoup(article.find('title').get_text(), "html").get_text()
-            if (article.find('description')):
-                news['summary'] = BeautifulSoup(article.find('description').get_text(), "html").get_text()
-            if (article.find('content')):
-                news['img_url'] = article.find('content')['url']
-            if (article.find('link')):
-                news['link'] = article.find('link').get_text()
-            news_list = pd.concat([news_list, pd.DataFrame([news])], ignore_index=True)
+        if (res.status_code == 200):
+            feed = BeautifulSoup(res.content, features='xml')
+            
+            articles = feed.findAll('item')
+            for article in articles:
+                news = {
+                    'title': None,
+                    'summary': None,
+                    'link': None,
+                    'img_url': None
+                }
+                news['title'] = BeautifulSoup(article.find('title').get_text(), "html").get_text()
+                if (article.find('description')):
+                    news['summary'] = BeautifulSoup(article.find('description').get_text(), "html").get_text()
+                if (article.find('content')):
+                    news['img_url'] = article.find('content')['url']
+                if (article.find('link')):
+                    news['link'] = article.find('link').get_text()
+                news_list = pd.concat([news_list, pd.DataFrame([news])], ignore_index=True)
         
     return news_list
 
