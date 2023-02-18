@@ -11,6 +11,7 @@ import json
 from mlxtend.frequent_patterns import apriori, association_rules
 from mlxtend.preprocessing import TransactionEncoder
 from datetime import date, datetime
+import numpy as np
 import os
 
 feed_urls = [
@@ -74,7 +75,7 @@ def process_text(docs, lang='fr'):
 
         # Lemmanize docs
         lemma_doc = list(filter(lambda token: token.is_stop == False and token.pos_ in ['NOUN', 'PROPN'] and token.lemma_ not in [*string.punctuation, *punctuation_chars], tokenized_doc))
-        lemma_doc = list(map(lambda tok: tok.lemma_, lemma_doc))
+        lemma_doc = list(map(lambda tok: tok.lemma_.lower(), lemma_doc))
         lemma_docs.append(lemma_doc)
 
 
@@ -153,43 +154,6 @@ def graphnet(docs, voc, min_freq=5):
 
     output_file(edges, 'edges.json')
 
-
-def find_topics(docs, criterion='leverage', level=0.01):
-    te = TransactionEncoder()
-    te_ary = te.fit(docs).transform(docs, sparse=True)
-    df = pd.DataFrame.sparse.from_spmatrix(te_ary, columns=te.columns_)
-
-    frequent_itemsets = apriori(df, min_support=0.005, use_colnames=True, verbose=1)
-    frequent_itemsets['length'] = frequent_itemsets['itemsets'].apply(lambda x: len(x))
-
-    rules = association_rules(frequent_itemsets, metric ="lift", min_threshold = 1)
-    rules = rules.sort_values([criterion], ascending =[False])
-
-    rules = rules[rules[criterion] > level]
-
-    topics = []
-    for i in rules.index:
-        rule = rules.loc[i]
-        x = list(rule['antecedents'])
-        y = list(rule['consequents'])
-        terms = x + y
-        found_similar = False
-        delete_topics_ids = []
-        for i, topic in enumerate(topics):
-            sim = similarity(topic, terms)
-            if (similarity(topic, terms) > 0.2):
-                found_similar = True
-                new_topic = list(set(list(topic) + terms))
-                delete_topics_ids.append(i)
-                break
-        if (found_similar == False):
-            topics.append((tuple(terms)))
-        else:
-            topics = [x for i, x in enumerate(topics) if i not in delete_topics_ids]
-            topics.insert(min(delete_topics_ids), tuple(new_topic))
-
-    return topics
-
 def list_dates():
     dates = [x for x in next(os.walk('./data'))[1]]
     dates.sort(key=lambda date: datetime.strptime(date, "%d-%m-%Y"), reverse=True)
@@ -197,13 +161,101 @@ def list_dates():
     with open(f'./data/list.json', 'w', encoding='UTF8', newline='') as f:
         writer = json.dump(dates, f, ensure_ascii=False)
 
+
+def find_topics(docs, vocab_freq, wordcomat, voc2id, k=5):
+    topics = []
+    for i in range(100):
+        term = vocab_freq[i]
+        best_terms = find_similar_tops(term, vocab_freq, wordcomat, voc2id, k)
+        sims = np.zeros(len(topics))
+        if (len(best_terms) == 0):
+            continue
+        for j, topic in enumerate(topics):
+            sims[j] = bow_similarity([term] + [x[1] for x in best_terms], topic, vocab_freq, wordcomat,voc2id, k)
+        
+        raw_sim = bow_similarity([term], [x[1] for x in best_terms], vocab_freq, wordcomat,voc2id, k)
+        if (len(sims) > 0 and np.max(sims) > 0 and np.max(sims) > raw_sim):
+                best_topic_id = np.argmax(sims)
+                if (term not in topics[best_topic_id]):
+                    topics[best_topic_id].append(term)
+        else:
+            topics.append([term, *[x[1] for x in best_terms]])
+
+    return topics
+
+def top_k_words(word, vocab_freq, wordcomat, voc2id, k):
+    word_id = voc2id[word]
+    top_k_ids = np.argsort(wordcomat[word_id,:])[::-1][:k]
+    return [(wordcomat[word_id, i], vocab_freq[i]) for i in top_k_ids]
+
+def find_similar_tops(word, vocab_freq, wordcomat, voc2id, k):
+    top_k = top_k_words(word, vocab_freq, wordcomat, voc2id, k)
+    results = []
+    for term in top_k:
+        if (word in list(map(lambda x: x[1], top_k_words(term[1], vocab_freq, wordcomat, voc2id, k)))):
+            results.append(term)
+    return results
+
 def similarity(x, y):
     count = 0
+    if (len(x) == 0 or len(y) == 0):
+        return 0
     for a in x:
         for b in y:
             if (b == a):
-                count += 1
-    return count/len(x)
+                count += 2
+
+    return count/(len(x)+len(y))
+
+def bow_similarity(b1, b2, vocab_freq, wordcomat, voc2id, k):
+    sim1 = []
+    for x in b1:
+        for w in find_similar_tops(x, vocab_freq, wordcomat, voc2id, k):
+            sim1.append(w[1])
+    sim2 = []
+    for x in b2:
+        for w in find_similar_tops(x, vocab_freq, wordcomat, voc2id, k):
+            sim2.append(w[1])
+    return similarity(sim1, sim2)
+
+def construct_word_cooccurence_matrix(voc2id, documents):
+    matrix = np.zeros((len(voc2id), len(voc2id)))
+    for document in documents:
+        if (len(document) > 1):
+            for word_i in document:
+                for word_j in document:
+                    if (word_i != word_j):
+                        matrix[voc2id[word_i], voc2id[word_j]] += 1
+    
+
+    return matrix/matrix.sum(axis=1, keepdims=True)
+
+
+
+def create_vocabulary_frequency(corpus):
+    '''Select top-k (k = vocab_len) words in term of frequencies as vocabulary'''
+    voc2id = {}
+    count = dict()
+    for document in corpus:
+        if (len(document)>1):
+            for word in document:
+                word = word.lower()
+                if (word in count):
+                    count[word] += 1
+                else:
+                    count[word] = 1
+            
+    
+    sorted_count_by_freq = sorted(count.items(), key=lambda kv: kv[1], reverse=True)
+    
+    vocabulary = []
+    for i, x in enumerate(sorted_count_by_freq):
+        vocabulary.append(x[0])
+        voc2id[x[0]] = i
+    return vocabulary, voc2id
+
+
+
 
 def find_similarities(trend, docs, threshold=0.3):
     results = []
@@ -214,11 +266,13 @@ def find_similarities(trend, docs, threshold=0.3):
     results = sorted(results, key=lambda x: -x[1])
     return results
 
-def find_trends(topics, docs):
+def find_trends(topics, docs, threshold=0.3):
     trends = []
     for topic in topics:
-        similar_docs = find_similarities(topic, docs)
+        similar_docs = find_similarities(topic, docs, threshold)
         img = None
+        if (len(similar_docs) == 0):
+            continue
         for doc in similar_docs:
             if (news_list.iloc[doc[0]]['img_url']):
                 img = news_list.iloc[doc[0]]['img_url']
@@ -226,6 +280,7 @@ def find_trends(topics, docs):
         trends.append({
             "topic": topic,
             "docs": similar_docs,
+            "title": news_list.iloc[similar_docs[0][0]]['title'] ,
             "img_url": img
         })
     
@@ -239,8 +294,11 @@ docs, voc = process_text(news_list['title'], lang='fr')
 
 graphnet(docs, voc, min_freq=2)
 
-topics = find_topics(docs, 'leverage', 0.005)
+vocab_freq, voc2id = create_vocabulary_frequency(docs)
+wordcomat = construct_word_cooccurence_matrix(voc2id, docs)
 
-trends = find_trends(topics, docs)
+topics = find_topics(docs, vocab_freq, wordcomat,voc2id, k=10)
+
+trends = find_trends(topics, docs, 0.5)
 output_file(trends, 'trends.json')
 list_dates()

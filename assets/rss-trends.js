@@ -167,7 +167,8 @@ fetch("./data/list.json")
               let html_text = `<div class="col-12 col-md-4 col-lg-3 m-0 p-4"><div class="card p-0">
                   ${data.img_url ? '<div class="card-header p-0"><img class="img-fluid" src="' + data.img_url +'"></div>' : ''}
                 <div class="card-body px-5 py-4">
-                  <h6 class="text-center">${data.topic.join(' ')}</h6>
+                  <h5 class="text-center">${data.title}</h5>
+                  <span class="text-center">${data.topic.join(' ')}</span>
                   <div class="row justify-content-between">
               `
               links.forEach(x => html_text += x)
