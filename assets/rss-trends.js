@@ -27,7 +27,7 @@ fetch("./data/list.json")
             const width = $('#mynetwork').innerWidth()
             const height = $('#mynetwork').innerHeight()
 
-            var initial_zoom = d3.zoomIdentity.translate(600, 400).scale(0.05);
+            var initial_zoom = d3.zoomIdentity.translate(400, 400).scale(0.05);
 
             //add zoom capabilities 
             var zoom_handler = d3.zoom().on("zoom", zoom_actions);
@@ -268,7 +268,7 @@ fetch("./data/list.json")
               }
             }
 
-            /// DYNAMIC ADDITION OF DATA (no used)
+            /// DYNAMIC ADDITION OF DATA (not used)
             function addJSON(json_nodes, json_links) {
               for (let x = 0; x < nodes.length; x++) {
                 let found = false
