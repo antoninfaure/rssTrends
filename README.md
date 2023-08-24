@@ -1,6 +1,6 @@
 # RSS Trends Analysis
 
-![RSS Trends](/images/rss-trends.png)
+![RSS Trends](rss-trends.png)
 
 ## Introduction
 
