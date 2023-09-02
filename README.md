@@ -1,5 +1,9 @@
 # RSS Trends Analysis
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![cron_scrap](https://github.com/antoninfaure/rssTrends/actions/workflows/cron_scrap.yml/badge.svg)](https://github.com/antoninfaure/rssTrends/actions/workflows/cron_scrap.yml)
+[![pages-build-deployment](https://github.com/antoninfaure/rssTrends/actions/workflows/pages/pages-build-deployment/badge.svg)](https://github.com/antoninfaure/rssTrends/actions/workflows/pages/pages-build-deployment)
+
 ![RSS Trends](rss-trends.png)
 
 ## Introduction
