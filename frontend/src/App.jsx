@@ -4,7 +4,7 @@ import { DateSelector } from "./components/date-selector"
 import { Graph } from "./components/graph"
 import { TrendCard } from "./components/trend-card"
 
-const DATA_ROOT = "/data"
+const DATA_ROOT = `${import.meta.env.BASE_URL}data`
 
 async function fetchJson(path) {
   const response = await fetch(path)
