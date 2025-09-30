@@ -1,0 +1,73 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 220 13% 7%;
+    --foreground: 0 0% 98%;
+    --card: 228 14% 13%;
+    --card-foreground: 0 0% 98%;
+    --popover: 224 16% 12%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 346 84% 60%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 223 16% 18%;
+    --secondary-foreground: 0 0% 96%;
+    --muted: 223 16% 14%;
+    --muted-foreground: 220 8% 65%;
+    --accent: 34 94% 58%;
+    --accent-foreground: 0 0% 10%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 223 16% 17%;
+    --input: 223 16% 17%;
+    --ring: 346 84% 60%;
+    --radius: 1.5rem;
+    --font-sans: 'Inter', 'Gilroy', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+
+  .dark {
+    --background: 220 13% 7%;
+    --foreground: 0 0% 98%;
+    --card: 228 14% 13%;
+    --card-foreground: 0 0% 98%;
+    --popover: 224 16% 12%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 346 84% 60%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 223 16% 18%;
+    --secondary-foreground: 0 0% 96%;
+    --muted: 223 16% 14%;
+    --muted-foreground: 220 8% 65%;
+    --accent: 34 94% 58%;
+    --accent-foreground: 0 0% 10%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 223 16% 17%;
+    --input: 223 16% 17%;
+    --ring: 346 84% 60%;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased min-h-screen;
+  }
+
+  #root {
+    @apply min-h-screen;
+  }
+}
+
+@layer components {
+  .card-sheen {
+    background-image: radial-gradient(circle at 20% 20%, rgba(255, 197, 61, 0.12), transparent 60%),
+      radial-gradient(circle at 85% 0%, rgba(255, 0, 94, 0.14), transparent 55%),
+      linear-gradient(135deg, rgba(17, 17, 20, 0.9), rgba(17, 17, 25, 0.7));
+  }
+}

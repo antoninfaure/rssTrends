@@ -48,6 +48,22 @@ fetch("./data/list.json")
               .range(["yellow", "red"])
 
             const radius = 20
+            const minFont = 12
+            const maxFont = 36
+
+            function buildFontScale(nodeList) {
+              const extent = d3.extent(nodeList, function (d) { return d.size; }) || [1, max_value];
+              var minSize = extent[0] != null ? extent[0] : 1;
+              var maxSize = extent[1] != null ? extent[1] : minSize;
+              if (minSize === maxSize) {
+                maxSize = minSize + 1;
+              }
+              return d3.scaleSqrt()
+                .domain([Math.max(1, minSize), Math.max(1, maxSize)])
+                .range([minFont, maxFont]);
+            }
+
+            var fontScale = buildFontScale(nodes)
 
             var simulation = d3.forceSimulation()
               .force("link", d3.forceLink().id(function (d) { return d.id; }))
@@ -94,6 +110,7 @@ fetch("./data/list.json")
 
             /// RESTART WHEN CHANGE OF DATA
             function restart() {
+              fontScale = buildFontScale(nodes)
               node.remove()
               link.remove()
 
@@ -130,11 +147,15 @@ fetch("./data/list.json")
                   return d.label
                 })
                 .style("font-size", function (d) {
-                  return d.size * radius
+                  return fontScale(d.size) + 'px'
                 })
                 .style('fill', 'black')
 
               node = selection.merge(node)
+              node.select('text')
+                .style('font-size', function (d) {
+                  return fontScale(d.size) + 'px'
+                })
 
               // Apply the general update pattern to the links.
               link = link.data(links, function (d) { return d.source.id + "-" + d.target.id; });
@@ -161,23 +182,29 @@ fetch("./data/list.json")
 
             }
             function Card(data) {
-              links = data.docs.map(x => {
-                return "<a class='btn btn-primary btn-sm w-100 m-1' href='" + x[2] + "' target='_blank'>" + x[2].split('/')[2] + "</a>"
-              })
-              let html_text = `<div class="col-12 col-md-4 col-lg-3 m-0 p-4"><div class="card p-0">
-                  ${data.img_url ? '<div class="card-header p-0"><img class="img-fluid" src="' + data.img_url +'"></div>' : ''}
-                <div class="card-body px-5 py-4">
-                  <h5 class="text-center">${data.title}</h5>
-                  <span class="text-center">${data.topic.join(' ')}</span>
-                  <div class="row justify-content-between">
-              `
-              links.forEach(x => html_text += x)
-              html_text += `
+              var docs = Array.isArray(data.docs) ? data.docs : []
+              var topics = Array.isArray(data.topic) ? data.topic : []
+              var linkMarkup = docs.map(function (x) {
+                var url = x[2]
+                var host = (typeof url === 'string' && url.indexOf('/') !== -1) ? url.split('/')[2] : 'Source'
+                return `<a class="trend-card__link" href="${url}" target="_blank" rel="noopener noreferrer">${host}</a>`
+              }).join('')
+              var topicMarkup = topics.map(function (topic) {
+                return `<span class="trend-card__tag">${topic}</span>`
+              }).join('')
+              var imageSection = data.img_url ? `<div class="trend-card__image" style="background-image:url('${data.img_url}')"></div>` : `<div class="trend-card__image trend-card__image--placeholder"></div>`
+              return `
+                <div class="col-12 col-md-6 col-lg-4 trend-card-col">
+                  <article class="trend-card">
+                    ${imageSection}
+                    <div class="trend-card__body">
+                      <h4 class="trend-card__title">${data.title}</h4>
+                      <div class="trend-card__topics">${topicMarkup}</div>
+                      <div class="trend-card__links">${linkMarkup}</div>
+                    </div>
+                  </article>
                 </div>
-                </div>
-                </div>
-              </div>`
-              return html_text
+              `.trim()
             }
             function displayTrends(date) {
               $('#trendsList').html('')
@@ -287,20 +314,21 @@ fetch("./data/list.json")
                   if (nodes[y].id == json_nodes[x].id) {
                     found = true;
                     nodes[y].size = json_nodes[x].size
+                    fontScale = buildFontScale(nodes)
                     let theNode = zoomable.selectAll(".node")
                       .filter(function (d) {
                         return d.id == nodes[y].id;
                       })
                     theNode.select('circle')
                       .attr('r', function (d) {
-                        return nodes[y].size * radius
+                        return d.size * radius
                       })
                       .attr("fill", function (d) {
-                        return color(nodes[y].size);
+                        return color(d.size);
                       })
                     theNode.select('text')
                       .style("font-size", function (d) {
-                        return nodes[y].size * radius
+                        return fontScale(d.size) + 'px'
                       })
 
                   }
@@ -330,4 +358,3 @@ fetch("./data/list.json")
         console.error("No data for latest date")
       })
   })
-

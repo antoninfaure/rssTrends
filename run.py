@@ -2,7 +2,6 @@ import spacy
 import pandas as pd
 import string
 import nltk
-from nltk.corpus import stopwords
 from bs4 import BeautifulSoup
 import requests
 import sys
@@ -12,7 +11,10 @@ from mlxtend.frequent_patterns import apriori, association_rules
 from mlxtend.preprocessing import TransactionEncoder
 from datetime import date, datetime
 import numpy as np
-import os
+from pathlib import Path
+
+DATE_FORMAT = "%d-%m-%Y"
+OUTPUT_ROOTS = [Path("data"), Path("frontend/public/data")]
 
 feed_urls = [
     "http://www.lemonde.fr/rss/une.xml",
@@ -95,13 +97,17 @@ def process_text(docs, lang='fr'):
 
     return lemma_docs, voc
 
-def output_file(data, filename):
-    path = f'./data/{date.today().strftime("%d-%m-%Y")}'
-    if not os.path.exists(path):
-        os.makedirs(path)
+def ensure_directory(path: Path):
+    path.mkdir(parents=True, exist_ok=True)
 
-    with open(f'{path}/{filename}', 'w', encoding='UTF8', newline='') as f:
-        writer = json.dump(data, f, ensure_ascii=False)
+
+def output_file(data, filename):
+    today_dir = date.today().strftime(DATE_FORMAT)
+    for root in OUTPUT_ROOTS:
+        target_dir = root / today_dir
+        ensure_directory(target_dir)
+        with open(target_dir / filename, "w", encoding="UTF8", newline="") as f:
+            json.dump(data, f, ensure_ascii=False)
 
 def graphnet(docs, voc, min_freq=5):
     
@@ -156,11 +162,25 @@ def graphnet(docs, voc, min_freq=5):
     output_file(edges, 'edges.json')
 
 def list_dates():
-    dates = [x for x in next(os.walk('./data'))[1]]
-    dates.sort(key=lambda date: datetime.strptime(date, "%d-%m-%Y"), reverse=True)
-    dates = [{"name": x} for x in dates]
-    with open(f'./data/list.json', 'w', encoding='UTF8', newline='') as f:
-        writer = json.dump(dates, f, ensure_ascii=False)
+    date_directories = set()
+    for root in OUTPUT_ROOTS:
+        if not root.exists():
+            continue
+        for entry in root.iterdir():
+            if entry.is_dir():
+                try:
+                    datetime.strptime(entry.name, DATE_FORMAT)
+                except ValueError:
+                    continue
+                date_directories.add(entry.name)
+
+    sorted_dates = sorted(date_directories, key=lambda value: datetime.strptime(value, DATE_FORMAT), reverse=True)
+    payload = [{"name": value} for value in sorted_dates]
+
+    for root in OUTPUT_ROOTS:
+        ensure_directory(root)
+        with open(root / "list.json", "w", encoding="UTF8", newline="") as f:
+            json.dump(payload, f, ensure_ascii=False)
 
 
 def find_topics(docs, vocab_freq, wordcomat, voc2id, k=5):

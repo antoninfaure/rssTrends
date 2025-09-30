@@ -152,3 +152,124 @@ h6 {
         line-height: 160%
     }
 }
+
+.trend-card-col {
+    padding: 1.5rem;
+}
+
+.trend-card {
+    background: radial-gradient(circle at 20% 20%, rgba(255, 197, 61, 0.12), transparent 60%),
+        radial-gradient(circle at 80% 0%, rgba(255, 0, 94, 0.12), transparent 55%),
+        #111114;
+    border-radius: 1.75rem;
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    box-shadow: 0 25px 45px rgba(0, 0, 0, 0.45);
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+    transition: transform .3s ease, box-shadow .3s ease, border-color .3s ease;
+}
+
+.trend-card:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 30px 55px rgba(0, 0, 0, 0.55);
+    border-color: rgba(255, 255, 255, 0.15);
+}
+
+.trend-card__image {
+    height: 180px;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+.trend-card__image--placeholder {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.01));
+    position: relative;
+}
+
+.trend-card__image--placeholder::after {
+    content: "visuel";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-family: 'GilroyLight';
+    letter-spacing: .4em;
+    text-transform: uppercase;
+    font-size: .65rem;
+    color: rgba(255, 255, 255, 0.4);
+}
+
+.trend-card__body {
+    padding: 1.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.trend-card__title {
+    font-size: 1.3rem;
+    line-height: 1.35;
+    margin: 0;
+}
+
+.trend-card__topics {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .5rem;
+}
+
+.trend-card__tag {
+    padding: .35rem .75rem;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.75);
+    font-size: .7rem;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+}
+
+.trend-card__links {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: .75rem;
+}
+
+.trend-card__link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: .6rem .75rem;
+    border-radius: .9rem;
+    background: rgba(255, 255, 255, 0.12);
+    color: rgba(255, 255, 255, 0.9);
+    font-size: .75rem;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    transition: background .2s ease, transform .2s ease;
+}
+
+.trend-card__link:hover {
+    background: rgba(255, 255, 255, 0.22);
+    transform: translateY(-2px);
+}
+
+@media screen and (max-width: 992px) {
+    .trend-card__body {
+        padding: 1.5rem;
+    }
+}
+
+@media screen and (max-width: 576px) {
+    .trend-card-col {
+        padding: 1rem 0;
+    }
+    .trend-card {
+        border-radius: 1.25rem;
+    }
+    .trend-card__image {
+        height: 150px;
+    }
+}
